@@ -13,7 +13,7 @@ import co.edu.uco.parameterservices.catalog.parameter.domain.Parameter;
 import co.edu.uco.parameterservices.catalog.parameter.service.ParameterService;
 
 @RestController
-@RequestMapping("/parameters/api/v1/parameters")
+@RequestMapping("/api/v1/parameters")
 public class ParameterController {
 
     private final ParameterService service;
@@ -27,6 +27,7 @@ public class ParameterController {
         var value = service.findByKey(key);
         return new ResponseEntity<>(value, (value == null) ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }
+    
     @GetMapping
     public ResponseEntity<Map<String, Parameter>> getAllParameters() {
         var all = service.findAll();
