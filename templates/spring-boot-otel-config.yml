@@ -1,0 +1,32 @@
+# Plantilla de configuración OpenTelemetry para servicios Spring Boot
+# Copiar este contenido a application.yml de cada servicio (API Gateway, Catalog Service)
+
+# OpenTelemetry Configuration
+otel:
+  service:
+    name: ${SERVICE_NAME:api-gateway}  # Cambiar por catalog-service según corresponda
+    version: 0.0.1-SNAPSHOT
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
+
+# Actuator con métricas y tracing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Logging para OpenTelemetry
+logging:
+  level:
+    io.opentelemetry: INFO
+

@@ -1,16 +1,20 @@
 package co.edu.uco.parameterservices.catalog.notification;
 
 import co.edu.uco.parameterservices.catalog.notification.domain.NotificationTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class NotificationCatalog {
 
+    private static final Logger logger = LoggerFactory.getLogger(NotificationCatalog.class);
     private static final String PREFIX = "notification:";
     private final RedisTemplate<String, Object> redisTemplate;
     private final Map<String, NotificationTemplate> fallbackMemory = new HashMap<>();
@@ -108,7 +112,7 @@ public class NotificationCatalog {
                 return (NotificationTemplate) cached;
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Redis no disponible, usando fallback local para template: " + code);
+            logger.warn("Redis no disponible para template '{}', usando fallback local: {}", code, e.getMessage());
         }
         return fallbackMemory.get(code);
     }
@@ -118,14 +122,22 @@ public class NotificationCatalog {
      */
     public Map<String, NotificationTemplate> getAllTemplates() {
         try {
-            Map<Object, Object> redisData = redisTemplate.opsForHash().entries(PREFIX);
-            if (redisData != null && !redisData.isEmpty()) {
+            Set<String> keys = redisTemplate.keys(PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
                 Map<String, NotificationTemplate> map = new HashMap<>();
-                redisData.forEach((k, v) -> map.put(k.toString(), (NotificationTemplate) v));
-                return map;
+                for (String key : keys) {
+                    Object obj = redisTemplate.opsForValue().get(key);
+                    if (obj instanceof NotificationTemplate) {
+                        String templateCode = key.substring(PREFIX.length());
+                        map.put(templateCode, (NotificationTemplate) obj);
+                    }
+                }
+                if (!map.isEmpty()) {
+                    return map;
+                }
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Redis no disponible, devolviendo templates locales.");
+            logger.warn("Redis no disponible, devolviendo templates locales: {}", e.getMessage());
         }
         return fallbackMemory;
     }
@@ -141,9 +153,9 @@ public class NotificationCatalog {
                 30, 
                 TimeUnit.MINUTES
             );
-            System.out.println("✅ Template sincronizado en Redis: " + template.getCode());
+            logger.debug("Template sincronizado en Redis: {}", template.getCode());
         } catch (Exception e) {
-            System.out.println("⚠️ No se pudo sincronizar en Redis: " + template.getCode());
+            logger.warn("No se pudo sincronizar template '{}' en Redis: {}", template.getCode(), e.getMessage());
         }
         fallbackMemory.put(template.getCode(), template);
     }
@@ -154,8 +166,9 @@ public class NotificationCatalog {
     public void removeTemplate(String code) {
         try {
             redisTemplate.delete(PREFIX + code);
+            logger.debug("Template eliminado de Redis: {}", code);
         } catch (Exception e) {
-            System.out.println("⚠️ Error eliminando de Redis: " + code);
+            logger.warn("Error eliminando template '{}' de Redis: {}", code, e.getMessage());
         }
         fallbackMemory.remove(code);
     }
@@ -170,7 +183,7 @@ public class NotificationCatalog {
                 redisTemplate.delete(keys);
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Error limpiando Redis.");
+            logger.warn("Error limpiando Redis: {}", e.getMessage());
         }
         fallbackMemory.clear();
     }

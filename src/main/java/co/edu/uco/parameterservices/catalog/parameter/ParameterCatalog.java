@@ -1,17 +1,21 @@
 package co.edu.uco.parameterservices.catalog.parameter;
 
 import co.edu.uco.parameterservices.catalog.parameter.domain.Parameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
 public class ParameterCatalog {
 
-    private static RedisTemplate<String, Object> redisTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(ParameterCatalog.class);
+    private final RedisTemplate<String, Object> redisTemplate;
     private static final String PREFIX = "parameter:";
 
     // Mapa local de respaldo
@@ -31,7 +35,7 @@ public class ParameterCatalog {
             Object obj = redisTemplate.opsForValue().get(PREFIX + key);
             if (obj instanceof Parameter) return (Parameter) obj;
         } catch (Exception e) {
-            System.out.println("Redis no disponible, usando memoria local.");
+            logger.warn("Redis no disponible para key '{}', usando memoria local: {}", key, e.getMessage());
         }
         return fallbackMemory.get(key);
     }
@@ -39,8 +43,10 @@ public class ParameterCatalog {
     public void synchronizeParameter(Parameter parameter) {
         try {
             redisTemplate.opsForValue().set(PREFIX + parameter.getKey(), parameter, 10, TimeUnit.MINUTES);
+            logger.debug("Parámetro sincronizado en Redis: {}", parameter.getKey());
         } catch (Exception e) {
-            System.out.println("No se pudo sincronizar en Redis, usando memoria local.");
+            logger.warn("No se pudo sincronizar parámetro '{}' en Redis, usando memoria local: {}", 
+                    parameter.getKey(), e.getMessage());
         }
         fallbackMemory.put(parameter.getKey(), parameter);
     }
@@ -54,14 +60,22 @@ public class ParameterCatalog {
 
     public Map<String, Parameter> getAllParameters() {
         try {
-            Map<Object, Object> redisValues = redisTemplate.opsForHash().entries(PREFIX);
-            if (redisValues != null && !redisValues.isEmpty()) {
+            Set<String> keys = redisTemplate.keys(PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
                 Map<String, Parameter> map = new HashMap<>();
-                redisValues.forEach((k, v) -> map.put(k.toString(), (Parameter) v));
-                return map;
+                for (String key : keys) {
+                    Object obj = redisTemplate.opsForValue().get(key);
+                    if (obj instanceof Parameter) {
+                        String paramKey = key.substring(PREFIX.length());
+                        map.put(paramKey, (Parameter) obj);
+                    }
+                }
+                if (!map.isEmpty()) {
+                    return map;
+                }
             }
         } catch (Exception e) {
-            System.out.println("Redis no disponible, devolviendo valores locales.");
+            logger.warn("Redis no disponible, devolviendo valores locales: {}", e.getMessage());
         }
         return fallbackMemory;
     }

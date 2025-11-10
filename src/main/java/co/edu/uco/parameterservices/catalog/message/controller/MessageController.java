@@ -24,7 +24,8 @@ public class MessageController {
     }
 
     @GetMapping("/{code}")
-    public ResponseEntity<Message> findByCode(@PathVariable String code) {
+    public ResponseEntity<Message> findByCode(
+            @jakarta.validation.constraints.NotBlank @PathVariable String code) {
         Message message = service.findByCode(code);
         return new ResponseEntity<>(message, message == null ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }

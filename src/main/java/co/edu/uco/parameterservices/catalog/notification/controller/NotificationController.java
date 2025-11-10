@@ -32,7 +32,8 @@ public class NotificationController {
      * Obtiene un template específico por código
      */
     @GetMapping("/{code}")
-    public ResponseEntity<NotificationTemplate> getTemplateByCode(@PathVariable String code) {
+    public ResponseEntity<NotificationTemplate> getTemplateByCode(
+            @jakarta.validation.constraints.NotBlank @PathVariable String code) {
         NotificationTemplate template = service.findByCode(code);
         if (template == null) {
             return ResponseEntity.notFound().build();
@@ -45,7 +46,8 @@ public class NotificationController {
      * Obtiene templates por tipo (EMAIL o SMS)
      */
     @GetMapping("/type/{type}")
-    public ResponseEntity<Map<String, NotificationTemplate>> getTemplatesByType(@PathVariable String type) {
+    public ResponseEntity<Map<String, NotificationTemplate>> getTemplatesByType(
+            @jakarta.validation.constraints.NotBlank @PathVariable String type) {
         return ResponseEntity.ok(service.findByType(type));
     }
 
@@ -62,7 +64,7 @@ public class NotificationController {
      */
     @PostMapping("/process")
     public ResponseEntity<Map<String, String>> processTemplate(
-            @RequestBody ProcessTemplateRequest request) {
+            @jakarta.validation.Valid @RequestBody ProcessTemplateRequest request) {
         
         String processed = service.processTemplate(
             request.getTemplateCode(), 
@@ -85,7 +87,7 @@ public class NotificationController {
      */
     @PostMapping
     public ResponseEntity<NotificationTemplate> createOrUpdateTemplate(
-            @RequestBody NotificationTemplate template) {
+            @jakarta.validation.Valid @RequestBody NotificationTemplate template) {
         
         service.synchronize(template);
         return ResponseEntity.status(HttpStatus.CREATED).body(template);
@@ -93,7 +95,9 @@ public class NotificationController {
 
     // DTO interno para el request de procesamiento
     public static class ProcessTemplateRequest {
+        @jakarta.validation.constraints.NotBlank(message = "El código del template es requerido")
         private String templateCode;
+        
         private Map<String, String> variables;
 
         public String getTemplateCode() {

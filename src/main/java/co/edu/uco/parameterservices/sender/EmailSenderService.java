@@ -36,7 +36,7 @@ public class EmailSenderService {
      * @param message Mensaje de texto
      */
     public void sendSms(String to, String message) {
-        // TODO: Implementar con Twilio o AWS SNS
+        // TODO: Implementar con notification API
         
         System.out.println("═══════════════════════════════════════");
         System.out.println("📱 SMS ENVIADO");

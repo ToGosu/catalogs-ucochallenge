@@ -23,7 +23,8 @@ public class ParameterController {
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<Parameter> getParameter(@PathVariable String key) {
+    public ResponseEntity<Parameter> getParameter(
+            @jakarta.validation.constraints.NotBlank @PathVariable String key) {
         var value = service.findByKey(key);
         return new ResponseEntity<>(value, (value == null) ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }

@@ -1,0 +1,67 @@
+# Plantilla de servicio Docker Compose para API Gateway y Catalog Service
+# Copiar y adaptar este bloque al docker-compose.yml de cada servicio
+
+# Ejemplo para API Gateway:
+# api-gateway:
+#   build:
+#     context: .
+#     dockerfile: Dockerfile
+#   container_name: api-gateway
+#   restart: unless-stopped
+#   expose:
+#     - "8090"
+#   environment:
+#     SPRING_PROFILES_ACTIVE: docker
+#     JAVA_OPTS: "-Xmx512m -Xms256m"
+#     # OpenTelemetry Configuration
+#     OTEL_SERVICE_NAME: api-gateway
+#     OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+#     OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+#     OTEL_RESOURCE_ATTRIBUTES: service.name=api-gateway,service.version=0.0.1-SNAPSHOT,deployment.environment=development
+#     OTEL_TRACES_EXPORTER: otlp
+#     OTEL_METRICS_EXPORTER: otlp
+#     OTEL_LOGS_EXPORTER: otlp
+#   depends_on:
+#     otel-collector:
+#       condition: service_started
+#   networks:
+#     - app-network
+#   healthcheck:
+#     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/actuator/health"]
+#     interval: 30s
+#     timeout: 10s
+#     retries: 3
+#     start_period: 60s
+
+# Ejemplo para Catalog Service:
+# catalog-service:
+#   build:
+#     context: .
+#     dockerfile: Dockerfile
+#   container_name: catalog-service
+#   restart: unless-stopped
+#   expose:
+#     - "8082"
+#   environment:
+#     SPRING_PROFILES_ACTIVE: docker
+#     JAVA_OPTS: "-Xmx512m -Xms256m"
+#     # OpenTelemetry Configuration
+#     OTEL_SERVICE_NAME: catalog-service
+#     OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+#     OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+#     OTEL_RESOURCE_ATTRIBUTES: service.name=catalog-service,service.version=0.0.1-SNAPSHOT,deployment.environment=development
+#     OTEL_TRACES_EXPORTER: otlp
+#     OTEL_METRICS_EXPORTER: otlp
+#     OTEL_LOGS_EXPORTER: otlp
+#   depends_on:
+#     otel-collector:
+#       condition: service_started
+#   networks:
+#     - app-network
+#   healthcheck:
+#     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+#     interval: 30s
+#     timeout: 10s
+#     retries: 3
+#     start_period: 60s
+

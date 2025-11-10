@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: catalog-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  cache:
+    type: redis
+
+server:
+  port: 8082
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# OpenTelemetry Configuration
+otel:
+  service:
+    name: ${OTEL_SERVICE_NAME:catalog-service}
+    version: 0.0.1-SNAPSHOT
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:grpc}
+
+# Actuator con métricas y tracing
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+
+# Logging para OpenTelemetry
+logging:
+  level:
+    io.opentelemetry: INFO
+    root: INFO
+

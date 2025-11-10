@@ -2,8 +2,11 @@ package co.edu.uco.parameterservices.catalog.message;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +15,7 @@ import co.edu.uco.parameterservices.catalog.message.domain.Message;
 @Component
 public class MessageCatalog {
 
+    private static final Logger logger = LoggerFactory.getLogger(MessageCatalog.class);
     private static final String PREFIX = "message:";
     private final RedisTemplate<String, Object> redisTemplate;
     private final Map<String, Message> fallbackMemory = new HashMap<>();
@@ -33,21 +37,29 @@ public class MessageCatalog {
                 return (Message) cached;
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Redis no disponible, usando fallback local.");
+            logger.warn("Redis no disponible para código '{}', usando fallback local: {}", code, e.getMessage());
         }
         return fallbackMemory.get(code);
     }
 
     public Map<String, Message> getAllMessages() {
         try {
-            Map<Object, Object> redisData = redisTemplate.opsForHash().entries(PREFIX);
-            if (redisData != null && !redisData.isEmpty()) {
+            Set<String> keys = redisTemplate.keys(PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
                 Map<String, Message> map = new HashMap<>();
-                redisData.forEach((k, v) -> map.put(k.toString(), (Message) v));
-                return map;
+                for (String key : keys) {
+                    Object obj = redisTemplate.opsForValue().get(key);
+                    if (obj instanceof Message) {
+                        String messageCode = key.substring(PREFIX.length());
+                        map.put(messageCode, (Message) obj);
+                    }
+                }
+                if (!map.isEmpty()) {
+                    return map;
+                }
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Redis no disponible, devolviendo fallback local.");
+            logger.warn("Redis no disponible, devolviendo fallback local: {}", e.getMessage());
         }
         return fallbackMemory;
     }
@@ -55,8 +67,9 @@ public class MessageCatalog {
     public void synchronizeMessage(Message message) {
         try {
             redisTemplate.opsForValue().set(PREFIX + message.getCode(), message, 10, TimeUnit.MINUTES);
+            logger.debug("Mensaje sincronizado en Redis: {}", message.getCode());
         } catch (Exception e) {
-            System.out.println("⚠️ No se pudo sincronizar el mensaje en Redis.");
+            logger.warn("No se pudo sincronizar mensaje '{}' en Redis: {}", message.getCode(), e.getMessage());
         }
         fallbackMemory.put(message.getCode(), message);
     }
@@ -68,7 +81,7 @@ public class MessageCatalog {
                 redisTemplate.delete(keys);
             }
         } catch (Exception e) {
-            System.out.println("⚠️ Error limpiando Redis, limpiando solo fallback local.");
+            logger.warn("Error limpiando Redis, limpiando solo fallback local: {}", e.getMessage());
         }
         fallbackMemory.clear();
     }

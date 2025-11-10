@@ -2,6 +2,9 @@ package co.edu.uco.parameterservices.catalog.notification.domain;
 
 import java.io.Serializable;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+
 /**
  * Representa un template de notificación (email o SMS)
  * Contiene asunto, cuerpo y formato
@@ -10,10 +13,19 @@ public class NotificationTemplate implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @NotBlank(message = "El código del template es requerido")
     private String code;           // Código único del template (ej: "WELCOME_EMAIL")
+    
+    @NotBlank(message = "El tipo es requerido")
+    @Pattern(regexp = "EMAIL|SMS", message = "El tipo debe ser EMAIL o SMS")
     private String type;           // EMAIL | SMS
+    
     private String subject;        // Asunto (para emails)
+    
+    @NotBlank(message = "El cuerpo del mensaje es requerido")
     private String body;           // Cuerpo del mensaje (puede tener placeholders)
+    
+    @Pattern(regexp = "HTML|PLAIN_TEXT", message = "El formato debe ser HTML o PLAIN_TEXT")
     private String format;         // HTML | PLAIN_TEXT
     
     public NotificationTemplate() {
