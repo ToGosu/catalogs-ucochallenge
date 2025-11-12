@@ -1,0 +1,202 @@
+name: Catalog Service CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, master ]
+  pull_request:
+    branches: [ main, develop, master ]
+
+env:
+  JAVA_VERSION: '21'
+  SERVICE_NAME: 'catalog-service'
+
+jobs:
+  test:
+    name: Tests y Cobertura
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: catalogservice
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Ejecutar tests con cobertura
+      run: mvn clean jacoco:prepare-agent test jacoco:report
+      env:
+        DATABASE_URL: jdbc:postgresql://localhost:5432/catalogservice
+        DATABASE_USERNAME: postgres
+        DATABASE_PASSWORD: postgres
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        VAULT_ENABLED: false
+    
+    - name: Subir cobertura a Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./target/site/jacoco/jacoco.xml
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  static-analysis:
+    name: Análisis Estático
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Ejecutar Checkstyle
+      run: mvn checkstyle:check
+      continue-on-error: true
+    
+    - name: Ejecutar SpotBugs
+      run: mvn spotbugs:check
+      continue-on-error: true
+    
+    - name: Publicar reportes
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: static-analysis-reports
+        path: |
+          target/checkstyle-result.xml
+          target/spotbugsXml.xml
+        retention-days: 7
+
+  security-scan:
+    name: Análisis de Seguridad
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Ejecutar OWASP Dependency Check
+      run: mvn org.owasp:dependency-check-maven:check
+      continue-on-error: true
+    
+    - name: Ejecutar Snyk Security Scan
+      uses: snyk/actions/maven@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high --all-projects
+
+  sonarqube:
+    name: Análisis SonarQube
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Ejecutar análisis SonarQube
+      run: mvn sonar:sonar
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_PROJECT_KEY: ${{ env.SERVICE_NAME }}
+
+  build:
+    name: Build y Package
+    needs: [test, static-analysis]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Build con Maven
+      run: mvn clean package -DskipTests
+    
+    - name: Construir imagen Docker
+      run: docker build -t ${{ env.SERVICE_NAME }}:${{ github.sha }} .
+    
+    - name: Publicar artefactos
+      uses: actions/upload-artifact@v4
+      with:
+        name: jar-artifact
+        path: target/*.jar
+        retention-days: 7
+
+  deploy:
+    name: Despliegue
+    needs: [build, security-scan]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Descargar artefactos
+      uses: actions/download-artifact@v4
+      with:
+        name: jar-artifact
+    
+    - name: Desplegar
+      run: |
+        echo "Configurar despliegue según tu infraestructura"
+

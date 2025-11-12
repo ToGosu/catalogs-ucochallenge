@@ -1,0 +1,12 @@
+# Configuración específica para Docker
+# Este perfil se activa cuando SPRING_PROFILES_ACTIVE=docker
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  cache:
+    type: redis
+

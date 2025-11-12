@@ -1,0 +1,56 @@
+# Archivos y directorios a ignorar en Docker build
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Maven
+target/
+# Incluir explícitamente el directorio .mvn (necesario para mvnw)
+!.mvn/
+!.mvn/**
+
+# IDE
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings
+
+# Logs
+*.log
+logs/
+
+# Certificados (se montan como volumen)
+certs/
+
+# Templates (no necesarios en el contenedor)
+templates/
+
+# Scripts (no necesarios en el contenedor)
+scripts/
+
+# Documentación
+*.md
+!README.md
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Nginx (se construye por separado)
+nginx/
+
+# OTEL Collector config (se monta como volumen)
+otel-collector-config.yaml
+otel-collector-config.yml
+
+# OS
+.DS_Store
+Thumbs.db
+

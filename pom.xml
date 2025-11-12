@@ -90,6 +90,63 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<!-- Checkstyle - Ejecutar manualmente: mvn checkstyle:check -->
+			<!-- No se ejecuta automáticamente en builds locales -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<version>3.3.1</version>
+				<configuration>
+					<configLocation>checkstyle.xml</configLocation>
+					<encoding>UTF-8</encoding>
+					<consoleOutput>true</consoleOutput>
+					<failsOnError>true</failsOnError>
+				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>com.puppycrawl.tools</groupId>
+						<artifactId>checkstyle</artifactId>
+						<version>10.12.5</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<!-- SpotBugs - Ejecutar manualmente: mvn spotbugs:check -->
+			<!-- No se ejecuta automáticamente en builds locales -->
+			<plugin>
+				<groupId>com.github.spotbugs</groupId>
+				<artifactId>spotbugs-maven-plugin</artifactId>
+				<version>4.8.0.0</version>
+				<configuration>
+					<effort>Max</effort>
+					<threshold>Low</threshold>
+					<xmlOutput>true</xmlOutput>
+				</configuration>
+			</plugin>
+
+			<!-- OWASP Dependency Check - Ejecutar manualmente: mvn org.owasp:dependency-check-maven:check -->
+			<!-- No se ejecuta automáticamente en builds locales -->
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+				<version>9.0.9</version>
+			</plugin>
+
+			<!-- SonarQube - Ejecutar manualmente: mvn sonar:sonar -->
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>3.10.0.2594</version>
+			</plugin>
+
+			<!-- JaCoCo para cobertura - Ejecutar manualmente: mvn jacoco:prepare-agent test jacoco:report -->
+			<!-- No se ejecuta automáticamente en builds locales para mantener velocidad -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.11</version>
+			</plugin>
 		</plugins>
 	</build>
 
